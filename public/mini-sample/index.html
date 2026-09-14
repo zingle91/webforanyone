@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>샘플 미니앱</title>
+  <style>
+    :root {
+      --bg: #0f1724; --card: #1c2330; --line: #2a3444;
+      --text: #e7ecf3; --muted: #8b98a8; --accent: #3b82f6; --ok: #86efac;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 14px;
+      font-family: "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif;
+      background: var(--bg); color: var(--text); font-size: 13px;
+    }
+    h1 { margin: 0 0 6px; font-size: 16px; }
+    .meta { color: var(--muted); margin-bottom: 14px; line-height: 1.4; }
+    .card {
+      background: var(--card); border: 1px solid var(--line);
+      border-radius: 12px; padding: 12px; margin-bottom: 10px;
+    }
+    .btn {
+      border: 0; border-radius: 10px; padding: 10px 12px;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      background: var(--accent); color: #fff; width: 100%; margin-bottom: 8px;
+      font-family: inherit;
+    }
+    .btn.ghost {
+      background: transparent; color: var(--muted); border: 1px solid var(--line);
+    }
+    .btn.danger {
+      background: rgba(248,113,113,.15); color: #f87171;
+    }
+    pre {
+      margin: 0; white-space: pre-wrap; word-break: break-word;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11px; color: var(--ok); line-height: 1.45;
+    }
+    .label { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+  </style>
+</head>
+<body>
+  <h1 id="title">샘플 미니앱</h1>
+  <p class="meta">postMessage 브릿지 데모 · channel <code>corp-superapp</code> v1</p>
+
+  <button class="btn" id="btn-user" type="button">host.user.get 호출</button>
+  <button class="btn ghost" id="btn-toast" type="button">host.ui.toast 호출</button>
+  <button class="btn danger" id="btn-close" type="button">host.nav.close 호출</button>
+
+  <div class="card">
+    <div class="label">결과 로그</div>
+    <pre id="log">대기 중…</pre>
+  </div>
+
+  <script>
+    const CHANNEL = 'corp-superapp';
+    const VERSION = 1;
+    const params = new URLSearchParams(location.search);
+    const appId = params.get('appId') || 'sample';
+    const title = params.get('title') || '샘플 미니앱';
+    document.getElementById('title').textContent = title;
+
+    const logEl = document.getElementById('log');
+    const pending = new Map();
+
+    function log(msg) {
+      const line = typeof msg === 'string' ? msg : JSON.stringify(msg, null, 2);
+      logEl.textContent = line + '\n\n' + logEl.textContent;
+    }
+
+    function callHost(method, params = {}) {
+      const id = 'req_' + Math.random().toString(36).slice(2, 10);
+      const payload = { channel: CHANNEL, version: VERSION, id, method, params };
+      return new Promise((resolve, reject) => {
+        pending.set(id, { resolve, reject });
+        log({ direction: '→ host', ...payload });
+        parent.postMessage(payload, location.origin);
+        setTimeout(() => {
+          if (pending.has(id)) {
+            pending.delete(id);
+            reject(new Error('timeout'));
+          }
+        }, 5000);
+      });
+    }
+
+    window.addEventListener('message', (event) => {
+      if (event.origin !== location.origin) return;
+      const data = event.data;
+      if (!data || data.channel !== CHANNEL || data.version !== VERSION) return;
+      if (!data.id || !pending.has(data.id)) return;
+      const { resolve } = pending.get(data.id);
+      pending.delete(data.id);
+      log({ direction: '← host', ...data });
+      resolve(data);
+    });
+
+    document.getElementById('btn-user').onclick = async () => {
+      try {
+        const res = await callHost('host.user.get');
+        log('user = ' + JSON.stringify(res.result));
+      } catch (e) {
+        log('error: ' + e.message);
+      }
+    };
+
+    document.getElementById('btn-toast').onclick = async () => {
+      try {
+        await callHost('host.ui.toast', { message: appId + ' · 저장됨 (샘플)' });
+      } catch (e) {
+        log('error: ' + e.message);
+      }
+    };
+
+    document.getElementById('btn-close').onclick = async () => {
+      try {
+        await callHost('host.nav.close');
+      } catch (e) {
+        log('error: ' + e.message);
+      }
+    };
+
+    log('mini.init → { appId: "' + appId + '", title: "' + title + '" }');
+  </script>
+</body>
+</html>
