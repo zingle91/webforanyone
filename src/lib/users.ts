@@ -18,6 +18,16 @@ export const LOCAL_ACCOUNTS: LocalAccount[] = [
       email: 'tester01@company.com',
     },
   },
+  {
+    id: 'tester99',
+    password: 'tester99',
+    user: {
+      name: '테스터99',
+      dept: 'QA팀',
+      sub: 'tester99',
+      email: 'tester99@company.com',
+    },
+  },
 ]
 
 export function authenticate(id: string, password: string): SessionUser | null {

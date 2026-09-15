@@ -49,7 +49,7 @@ export function LoginView({ onLogin }: Props) {
       <button type="button" className="btn primary block" onClick={submit}>
         로그인
       </button>
-      <p className="hint">프로토타입 계정 · tester01 / tester01</p>
+      <p className="hint">프로토타입 계정 · tester01 / tester01 · tester99 / tester99</p>
     </div>
   )
 }
