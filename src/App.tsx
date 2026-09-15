@@ -134,8 +134,8 @@ export default function App() {
             )}
           </div>
 
-          {session && !activeApp && makeSub === 'hub' && (
-            <div className="tabbar">
+          {session && !activeApp && (
+            <nav className="tabbar" aria-label="메인 메뉴">
               <button
                 type="button"
                 className={`tab ${tab === 'home' ? 'active' : ''}`}
@@ -157,7 +157,7 @@ export default function App() {
               >
                 <span className="ico">✨</span>만들기
               </button>
-            </div>
+            </nav>
           )}
 
           <Toast message={toast} />

@@ -109,12 +109,15 @@ body {
 }
 
 .tabbar {
-  height: 64px;
+  height: calc(64px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   border-top: 1px solid var(--line);
   background: #0c1016;
   flex-shrink: 0;
+  z-index: 20;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.35);
 }
 
 .tab {
@@ -133,6 +136,11 @@ body {
 
 .tab.active {
   color: var(--accent);
+  font-weight: 700;
+}
+
+.tab.active .ico {
+  transform: scale(1.08);
 }
 
 .tab .ico {
@@ -645,9 +653,15 @@ body {
   }
   .phone {
     width: 100%;
-    height: 100vh;
+    height: 100dvh;
     max-height: none;
     border-radius: 0;
     border: 0;
+  }
+
+  .tabbar {
+    /* keep above mobile browser chrome */
+    position: sticky;
+    bottom: 0;
   }
 }
