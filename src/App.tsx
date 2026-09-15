@@ -15,13 +15,7 @@ import {
   saveSession,
 } from './lib/storage'
 import type { MiniApp, SessionUser, TabId } from './lib/types'
-
-const MOCK_USER: SessionUser = {
-  name: '김민수',
-  dept: 'AI팀',
-  sub: 'emp-10482',
-  email: 'minsu.kim@company.com',
-}
+import { authenticate } from './lib/users'
 
 type MakeSub = 'hub' | 'maker' | 'keys'
 
@@ -44,10 +38,15 @@ export default function App() {
     [installedIds],
   )
 
-  const login = () => {
-    saveSession(MOCK_USER)
-    setSession(MOCK_USER)
+  const login = (id: string, password: string) => {
+    const user = authenticate(id, password)
+    if (!user) return false
+    saveSession(user)
+    setSession(user)
     setTab('home')
+    setMakeSub('hub')
+    setActiveApp(null)
+    return true
   }
 
   const logout = () => {
