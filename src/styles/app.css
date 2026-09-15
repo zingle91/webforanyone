@@ -665,3 +665,184 @@ body {
     bottom: 0;
   }
 }
+
+/* --- Maker / SpecRuntime --- */
+.chat {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.bubble {
+  max-width: 92%;
+  padding: 10px 12px;
+  border-radius: 14px;
+  font-size: 13px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.bubble.ai {
+  background: var(--card);
+  border: 1px solid var(--line);
+  align-self: flex-start;
+}
+
+.bubble.me {
+  background: rgba(59, 130, 246, 0.2);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  align-self: flex-end;
+}
+
+.composer {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  position: sticky;
+  bottom: 0;
+  background: var(--panel);
+  padding-top: 8px;
+}
+
+.composer textarea.input,
+textarea.input,
+input.input {
+  flex: 1;
+  width: 100%;
+  border: 1px solid var(--line);
+  background: #121821;
+  color: var(--text);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.spec-note {
+  font-size: 11px;
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  border-radius: 10px;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+}
+
+.maker-body {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.maker-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.maker-actions .btn {
+  flex: 1;
+}
+
+.preview-card,
+.spec-form {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px;
+  margin-top: 4px;
+}
+
+.spec-screen-title {
+  font-weight: 600;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.row-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.spec-field {
+  display: block;
+  margin: 8px 0 4px;
+}
+
+.spec-field > span {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.spec-field input[type="text"],
+.spec-field input[type="number"],
+.spec-field input[type="date"],
+.spec-field input[type="datetime-local"],
+.spec-field input[type="password"],
+.spec-field select,
+.spec-field textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: #121821;
+  color: var(--text);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.spec-field input[type="checkbox"] {
+  width: auto;
+}
+
+.spec-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px 10px 0;
+  background: #0c1016;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.spec-tab {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  padding: 8px;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+
+.spec-tab.active {
+  color: var(--accent);
+  font-weight: 700;
+  border-bottom-color: var(--accent);
+}
+
+.spec-runtime-body {
+  flex: 1;
+  overflow: auto;
+  padding: 16px;
+  min-height: 0;
+}
+
+.runtime .body {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+}
+
+.chip.ok {
+  color: #86efac;
+  border-color: rgba(34, 197, 94, 0.4);
+  background: rgba(34, 197, 94, 0.12);
+}

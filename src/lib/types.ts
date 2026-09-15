@@ -1,3 +1,5 @@
+import type { MiniappSpec } from './spec/types'
+
 export type SessionUser = {
   name: string
   dept: string
@@ -12,8 +14,12 @@ export type MiniApp = {
   icon: string
   colorClass: string
   publisher: string
-  /** sample mini-app path under public/ */
-  entryUrl: string
+  /** sample mini-app path under public/ — seed catalog iframe apps */
+  entryUrl?: string
+  /** user-made MiniappSpec apps open via SpecRuntime */
+  spec?: MiniappSpec
+  source?: 'catalog' | 'user'
+  ownerSub?: string
 }
 
 export type TabId = 'home' | 'store' | 'make'

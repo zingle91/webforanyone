@@ -34,6 +34,19 @@ export function MiniRuntime({ app, user, onClose, onToast }: Props) {
     return () => window.removeEventListener('message', onMessage)
   }, [user, onClose, onToast])
 
+  if (!app.entryUrl) {
+    return (
+      <div className="runtime">
+        <div className="bar">
+          <button type="button" className="btn ghost" onClick={onClose}>←</button>
+          <div className="title">{app.name}</div>
+          <button type="button" className="btn danger" onClick={onClose}>닫기</button>
+        </div>
+        <div className="body"><div className="empty">entryUrl이 없습니다</div></div>
+      </div>
+    )
+  }
+
   const src = `${app.entryUrl}?appId=${encodeURIComponent(app.id)}&title=${encodeURIComponent(app.name)}`
 
   return (

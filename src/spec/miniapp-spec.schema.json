@@ -1,0 +1,743 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://corp-superapp.local/schemas/miniapp-spec.v1.json",
+  "title": "Corp SuperApp MiniappSpec or SpecError",
+  "description": "Validates LLM output for MINIAPP_SPEC.md v1. Use with Ajv (draft-07). additionalProperties is false throughout.",
+  "oneOf": [
+    {
+      "$ref": "#/definitions/MiniappSpec"
+    },
+    {
+      "$ref": "#/definitions/SpecErrorDocument"
+    }
+  ],
+  "definitions": {
+    "SpecVersion": {
+      "const": 1
+    },
+    "AppId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{1,47}$"
+    },
+    "EntityName": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{0,31}$"
+    },
+    "ScreenId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{0,31}$"
+    },
+    "FieldName": {
+      "type": "string",
+      "pattern": "^[a-z][A-Za-z0-9_]{0,31}$"
+    },
+    "Icon": {
+      "type": "string",
+      "enum": [
+        "calendar",
+        "building",
+        "receipt",
+        "check",
+        "megaphone",
+        "tools",
+        "meal",
+        "chart",
+        "moon",
+        "users",
+        "file",
+        "clipboard",
+        "clock",
+        "home",
+        "star"
+      ]
+    },
+    "Permission": {
+      "type": "string",
+      "enum": [
+        "user.read",
+        "data.read",
+        "data.write",
+        "ui.toast"
+      ]
+    },
+    "Visibility": {
+      "type": "string",
+      "enum": [
+        "private",
+        "team",
+        "company"
+      ]
+    },
+    "FieldType": {
+      "type": "string",
+      "enum": [
+        "id",
+        "string",
+        "number",
+        "boolean",
+        "date",
+        "datetime",
+        "enum",
+        "userRef",
+        "richtext"
+      ]
+    },
+    "AutoValue": {
+      "type": "string",
+      "enum": [
+        "createdAt",
+        "updatedAt",
+        "currentUser"
+      ]
+    },
+    "TemplateString": {
+      "type": "string",
+      "maxLength": 200,
+      "pattern": "^([^{]|\\{\\{[a-z][A-Za-z0-9_]*\\}\\})*$"
+    },
+    "EntityField": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "type"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/definitions/FieldName"
+        },
+        "type": {
+          "$ref": "#/definitions/FieldType"
+        },
+        "primaryKey": {
+          "type": "boolean"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "default": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        "maxLength": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5000
+        },
+        "min": {
+          "type": "number"
+        },
+        "max": {
+          "type": "number"
+        },
+        "enum": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "minItems": 2,
+          "maxItems": 20,
+          "uniqueItems": true
+        },
+        "auto": {
+          "$ref": "#/definitions/AutoValue"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "id"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "required": [
+              "primaryKey"
+            ],
+            "properties": {
+              "primaryKey": {
+                "const": true
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "enum"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "required": [
+              "enum"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "string"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "maxLength": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 2000
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "richtext"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "maxLength": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 5000
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "primaryKey": {
+                "const": true
+              }
+            },
+            "required": [
+              "primaryKey"
+            ]
+          },
+          "then": {
+            "properties": {
+              "type": {
+                "const": "id"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          }
+        }
+      ]
+    },
+    "Entity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "fields"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/definitions/EntityName"
+        },
+        "fields": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 30,
+          "items": {
+            "$ref": "#/definitions/EntityField"
+          }
+        },
+        "indexes": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 4,
+            "items": {
+              "$ref": "#/definitions/FieldName"
+            }
+          }
+        }
+      }
+    },
+    "OnSuccess": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "toast": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "navigate": {
+          "$ref": "#/definitions/ScreenId"
+        }
+      }
+    },
+    "NavAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "navigate"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "navigate": {
+          "$ref": "#/definitions/ScreenId"
+        }
+      }
+    },
+    "SortItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "field",
+        "order"
+      ],
+      "properties": {
+        "field": {
+          "$ref": "#/definitions/FieldName"
+        },
+        "order": {
+          "type": "string",
+          "enum": [
+            "asc",
+            "desc"
+          ]
+        }
+      }
+    },
+    "ListFilter": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "maxProperties": 10,
+      "propertyNames": {
+        "$ref": "#/definitions/FieldName"
+      },
+      "patternProperties": {
+        "^[a-z][A-Za-z0-9_]{0,31}$": {
+          "type": [
+            "string",
+            "number",
+            "boolean"
+          ],
+          "maxLength": 64
+        }
+      }
+    },
+    "DetailAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "type"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "update",
+            "delete",
+            "navigate"
+          ]
+        },
+        "navigate": {
+          "$ref": "#/definitions/ScreenId"
+        },
+        "confirm": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "set": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "maxProperties": 10
+        }
+      }
+    },
+    "ScreenForm": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "type",
+        "entity",
+        "mode",
+        "fields"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/ScreenId"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "type": {
+          "const": "form"
+        },
+        "entity": {
+          "$ref": "#/definitions/EntityName"
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "create",
+            "edit"
+          ]
+        },
+        "fields": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 30,
+          "items": {
+            "$ref": "#/definitions/FieldName"
+          },
+          "uniqueItems": true
+        },
+        "submitLabel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "onSuccess": {
+          "$ref": "#/definitions/OnSuccess"
+        }
+      }
+    },
+    "ScreenList": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "type",
+        "entity"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/ScreenId"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "type": {
+          "const": "list"
+        },
+        "entity": {
+          "$ref": "#/definitions/EntityName"
+        },
+        "filter": {
+          "$ref": "#/definitions/ListFilter"
+        },
+        "sort": {
+          "type": "array",
+          "maxItems": 3,
+          "items": {
+            "$ref": "#/definitions/SortItem"
+          }
+        },
+        "itemTitle": {
+          "$ref": "#/definitions/TemplateString"
+        },
+        "itemSubtitle": {
+          "$ref": "#/definitions/TemplateString"
+        },
+        "emptyText": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "primaryAction": {
+          "$ref": "#/definitions/NavAction"
+        },
+        "itemNavigate": {
+          "$ref": "#/definitions/ScreenId"
+        }
+      }
+    },
+    "ScreenDetail": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "type",
+        "entity",
+        "fields"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/ScreenId"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "type": {
+          "const": "detail"
+        },
+        "entity": {
+          "$ref": "#/definitions/EntityName"
+        },
+        "fields": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 30,
+          "items": {
+            "$ref": "#/definitions/FieldName"
+          },
+          "uniqueItems": true
+        },
+        "actions": {
+          "type": "array",
+          "maxItems": 5,
+          "items": {
+            "$ref": "#/definitions/DetailAction"
+          }
+        }
+      }
+    },
+    "Screen": {
+      "oneOf": [
+        {
+          "$ref": "#/definitions/ScreenForm"
+        },
+        {
+          "$ref": "#/definitions/ScreenList"
+        },
+        {
+          "$ref": "#/definitions/ScreenDetail"
+        }
+      ]
+    },
+    "Navigation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "initialScreen"
+      ],
+      "properties": {
+        "initialScreen": {
+          "$ref": "#/definitions/ScreenId"
+        },
+        "tabs": {
+          "type": "array",
+          "maxItems": 5,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "screenId",
+              "label"
+            ],
+            "properties": {
+              "screenId": {
+                "$ref": "#/definitions/ScreenId"
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 20
+              }
+            }
+          }
+        }
+      }
+    },
+    "App": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "appId",
+        "name",
+        "icon",
+        "visibility",
+        "permissions"
+      ],
+      "properties": {
+        "appId": {
+          "$ref": "#/definitions/AppId"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "icon": {
+          "$ref": "#/definitions/Icon"
+        },
+        "visibility": {
+          "$ref": "#/definitions/Visibility"
+        },
+        "permissions": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/definitions/Permission"
+          }
+        }
+      }
+    },
+    "Data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "entities"
+      ],
+      "properties": {
+        "entities": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 5,
+          "items": {
+            "$ref": "#/definitions/Entity"
+          }
+        }
+      }
+    },
+    "MiniappSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "specVersion",
+        "app",
+        "data",
+        "screens",
+        "navigation"
+      ],
+      "properties": {
+        "specVersion": {
+          "$ref": "#/definitions/SpecVersion"
+        },
+        "app": {
+          "$ref": "#/definitions/App"
+        },
+        "data": {
+          "$ref": "#/definitions/Data"
+        },
+        "screens": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/definitions/Screen"
+          }
+        },
+        "navigation": {
+          "$ref": "#/definitions/Navigation"
+        },
+        "assumptions": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        }
+      }
+    },
+    "SpecErrorDocument": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "specVersion",
+        "error"
+      ],
+      "properties": {
+        "specVersion": {
+          "$ref": "#/definitions/SpecVersion"
+        },
+        "error": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "code",
+            "message"
+          ],
+          "properties": {
+            "code": {
+              "type": "string",
+              "enum": [
+                "unsupported_requirement",
+                "ambiguous_requirement",
+                "violates_policy",
+                "too_complex"
+              ]
+            },
+            "message": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "suggest": {
+              "type": "string",
+              "maxLength": 200
+            }
+          }
+        }
+      }
+    }
+  }
+}
