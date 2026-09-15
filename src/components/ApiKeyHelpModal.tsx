@@ -47,8 +47,8 @@ export function ApiKeyHelpModal({ open, onClose }: Props) {
           호출할 때 필요해요.
         </p>
         <div className="warn-box">
-          키는 다른 사람에게 공유하지 마세요. 이 화면에서만 등록하면 서버에 암호화되어
-          저장돼요. (프로토타입: 실제 키 저장 없음)
+          키는 다른 사람에게 공유하지 마세요. 이 브라우저에서 로그인 비밀번호로
+          암호화해 저장하며, 서버로 업로드하지 않습니다. (현재 단계)
         </div>
         <div className="provider-tabs">
           {(

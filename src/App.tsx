@@ -10,6 +10,7 @@ import { Toast } from './components/Toast'
 import { DEFAULT_INSTALLED } from './lib/apps'
 import { mergeCatalog } from './lib/spec/catalog'
 import {
+  loadApiKeys,
   loadUserInstalled,
   saveUserInstalled,
 } from './lib/spec/persistence'
@@ -22,6 +23,8 @@ type MakeSub = 'hub' | 'maker' | 'keys' | 'preview'
 
 export default function App() {
   const [session, setSession] = useState<SessionUser | null>(() => loadSession())
+  /** Login password kept in React state only — never persisted. Needed to decrypt BYOK keys. */
+  const [sessionSecret, setSessionSecret] = useState<string | null>(null)
   const [tab, setTab] = useState<TabId>('home')
   const [installedIds, setInstalledIds] = useState<string[]>([])
   const [activeApp, setActiveApp] = useState<MiniApp | null>(null)
@@ -65,16 +68,24 @@ export default function App() {
     if (!user) return false
     saveSession(user)
     setSession(user)
+    setSessionSecret(password)
     setTab('home')
     setMakeSub('hub')
     setActiveApp(null)
     setPreviewSpec(null)
+    const { clearedLegacy } = loadApiKeys(user.sub)
+    if (clearedLegacy) {
+      window.setTimeout(() => {
+        showToast('이전 평문 API 키가 제거되었습니다. 다시 등록해 주세요.')
+      }, 0)
+    }
     return true
   }
 
   const logout = () => {
     clearSession()
     setSession(null)
+    setSessionSecret(null)
     setActiveApp(null)
     setPreviewSpec(null)
     setMakeSub('hub')
@@ -169,6 +180,7 @@ export default function App() {
                     onSub={setMakeSub}
                     onOpenHelp={() => setHelpOpen(true)}
                     user={session}
+                    sessionSecret={sessionSecret}
                     onToast={showToast}
                     onPublished={handlePublished}
                     onPreview={(spec) => {

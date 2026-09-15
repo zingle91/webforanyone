@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import type { SessionUser } from '../lib/types'
 import type {
   ApiKeyProvider,
+  EncryptedStoredApiKey,
   MakerDraft,
   MakerMessage,
   MiniappSpec,
-  StoredApiKey,
 } from '../lib/spec/types'
 import { generateFromConversation } from '../lib/spec/generator'
 import {
@@ -13,14 +13,21 @@ import {
   validateMiniappDocument,
 } from '../lib/spec/validate'
 import {
+  getEncryptedApiKey,
   loadApiKeys,
   loadDrafts,
-  maskApiKey,
+  maskApiKeySuffix,
   publishApp,
   removeApiKey,
-  saveApiKey,
+  saveEncryptedApiKey,
   upsertDraft,
 } from '../lib/spec/persistence'
+import {
+  decryptApiKey,
+  encryptApiKey,
+  looksLikeApiKey,
+  roundTripTest,
+} from '../lib/spec/apiKeyCrypto'
 import { iconToEmoji } from '../lib/spec/icons'
 
 type Sub = 'hub' | 'maker' | 'keys' | 'preview'
@@ -30,6 +37,8 @@ type Props = {
   onSub: (s: Sub) => void
   onOpenHelp: () => void
   user: SessionUser
+  /** Login password in memory only; null after refresh until re-login. */
+  sessionSecret: string | null
   onToast: (msg: string) => void
   onPublished: () => void
   onPreview: (spec: MiniappSpec) => void
@@ -51,6 +60,7 @@ export function MakeView({
   onSub,
   onOpenHelp,
   user,
+  sessionSecret,
   onToast,
   onPublished,
   onPreview,
@@ -62,14 +72,18 @@ export function MakeView({
   const [validationErrors, setValidationErrors] = useState<string>('')
   const [busy, setBusy] = useState(false)
   const chatEndRef = useRef<HTMLDivElement>(null)
+  const keyFormRef = useRef<HTMLFormElement>(null)
 
   const [provider, setProvider] = useState<ApiKeyProvider>('openai')
-  const [apiKeyInput, setApiKeyInput] = useState('')
-  const [savedKeys, setSavedKeys] = useState<StoredApiKey[]>(() => loadApiKeys(user.sub))
+  const [savedKeys, setSavedKeys] = useState<EncryptedStoredApiKey[]>(
+    () => loadApiKeys(user.sub).keys,
+  )
+  const [keyBusy, setKeyBusy] = useState(false)
+  const [keyFeedback, setKeyFeedback] = useState<string | null>(null)
 
   useEffect(() => {
     setDrafts(loadDrafts(user.sub))
-    setSavedKeys(loadApiKeys(user.sub))
+    setSavedKeys(loadApiKeys(user.sub).keys)
   }, [user.sub])
 
   useEffect(() => {
@@ -261,6 +275,111 @@ export function MakeView({
     )
   }
 
+  const refreshKeys = () => {
+    setSavedKeys(loadApiKeys(user.sub).keys)
+  }
+
+  const requireSecret = (): string | null => {
+    if (!sessionSecret) {
+      onToast('다시 로그인해 주세요')
+      setKeyFeedback('세션 비밀번호가 없습니다. 로그아웃 후 다시 로그인해 주세요.')
+      return null
+    }
+    return sessionSecret
+  }
+
+  const handleSaveKey = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const secret = requireSecret()
+    if (!secret) return
+    const data = new FormData(e.currentTarget)
+    const rawKey = String(data.get('apiKey') ?? '').trim()
+    if (!rawKey) {
+      onToast('키를 입력해 주세요')
+      setKeyFeedback('API 키를 입력해 주세요.')
+      return
+    }
+    setKeyBusy(true)
+    setKeyFeedback(null)
+    try {
+      const enc = await encryptApiKey(rawKey, secret, user.sub)
+      saveEncryptedApiKey(user.sub, {
+        provider,
+        ...enc,
+        updatedAt: new Date().toISOString(),
+      })
+      refreshKeys()
+      e.currentTarget.reset()
+      setKeyFeedback('키를 암호화해 저장했습니다 (브라우저 로컬).')
+      onToast('키를 암호화해 저장했습니다')
+    } catch {
+      setKeyFeedback('저장에 실패했습니다.')
+      onToast('키 저장 실패')
+    } finally {
+      setKeyBusy(false)
+    }
+  }
+
+  const handleTestKey = async () => {
+    const secret = requireSecret()
+    if (!secret) return
+    const form = keyFormRef.current
+    const typed = form
+      ? String(new FormData(form).get('apiKey') ?? '').trim()
+      : ''
+    setKeyBusy(true)
+    setKeyFeedback(null)
+    try {
+      if (typed) {
+        if (!looksLikeApiKey(provider, typed)) {
+          setKeyFeedback(
+            `형식 검사 실패 (${provider}). 실제 LLM 호출은 CORS 제한으로 생략합니다.`,
+          )
+          onToast('키 형식 검사 실패')
+          return
+        }
+        const rt = await roundTripTest(typed, secret, user.sub)
+        setKeyFeedback(
+          rt.ok
+            ? `${rt.message}. 형식 OK · 실제 LLM 호출은 CORS 제한으로 하지 않습니다.`
+            : rt.message,
+        )
+        onToast(rt.ok ? '키 테스트 성공' : '키 테스트 실패')
+        return
+      }
+      const stored = getEncryptedApiKey(user.sub, provider)
+      if (!stored) {
+        setKeyFeedback('저장된 키가 없습니다. 키를 입력하거나 먼저 저장해 주세요.')
+        onToast('저장된 키 없음')
+        return
+      }
+      const plain = await decryptApiKey(stored, secret, user.sub)
+      if (!looksLikeApiKey(provider, plain)) {
+        setKeyFeedback(
+          '복호화는 됐지만 형식 검사에 실패했습니다. (실제 LLM 호출은 CORS로 생략)',
+        )
+        onToast('형식 검사 실패')
+        return
+      }
+      if (plain.slice(-4) !== stored.keySuffix) {
+        setKeyFeedback('복호화 결과와 keySuffix가 일치하지 않습니다.')
+        onToast('키 테스트 실패')
+        return
+      }
+      setKeyFeedback(
+        '저장된 키 복호화·형식 검사 성공. 실제 LLM 호출은 CORS 제한으로 하지 않습니다.',
+      )
+      onToast('키 테스트 성공')
+    } catch {
+      setKeyFeedback(
+        '복호화 실패 — 로그인 비밀번호가 다르거나 데이터가 손상되었을 수 있습니다.',
+      )
+      onToast('키 테스트 실패')
+    } finally {
+      setKeyBusy(false)
+    }
+  }
+
   if (sub === 'keys') {
     return (
       <div className="subscreen">
@@ -274,11 +393,23 @@ export function MakeView({
         <div className="body">
           <p className="hint" style={{ textAlign: 'left', margin: '0 0 12px' }}>
             선택 사항입니다. 코어 메이커는 <strong>로컬 생성기</strong>로 API 키 없이
-            동작합니다. 키는 이 브라우저 localStorage에만 저장됩니다.
+            동작합니다. 키는 로그인 비밀번호로 <strong>브라우저에서 암호화</strong>되어
+            localStorage에만 저장되며, 서버로 업로드하지 않습니다 (현재 단계).
           </p>
+          <div className="warn-box" style={{ marginBottom: 12 }}>
+            평문 API 키는 저장하지 않습니다. 새로고침 후에는 복호화를 위해{' '}
+            <strong>다시 로그인</strong>해야 합니다.
+          </div>
           <button type="button" className="linkish" onClick={onOpenHelp}>
             ❓ API키가 무엇인가요?
           </button>
+
+          {!sessionSecret && (
+            <div className="warn-box" style={{ marginTop: 12 }}>
+              세션 비밀번호가 없습니다. 키를 저장·테스트하려면{' '}
+              <strong>다시 로그인해 주세요</strong>.
+            </div>
+          )}
 
           <div className="provider-tabs" style={{ marginTop: 8 }}>
             {(['openai', 'anthropic', 'gemini'] as ApiKeyProvider[]).map((p) => (
@@ -293,33 +424,45 @@ export function MakeView({
             ))}
           </div>
 
-          <label className="spec-field">
-            <span>API 키</span>
-            <input
-              type="password"
-              className="input"
-              placeholder="sk-… 또는 발급 키"
-              value={apiKeyInput}
-              onChange={(e) => setApiKeyInput(e.target.value)}
-            />
-          </label>
-          <button
-            type="button"
-            className="btn primary block"
-            style={{ marginTop: 10 }}
-            onClick={() => {
-              if (!apiKeyInput.trim()) {
-                onToast('키를 입력해 주세요')
-                return
-              }
-              saveApiKey(user.sub, provider, apiKeyInput.trim())
-              setSavedKeys(loadApiKeys(user.sub))
-              setApiKeyInput('')
-              onToast('키를 저장했습니다 (로컬)')
-            }}
-          >
-            키 저장
-          </button>
+          <form ref={keyFormRef} onSubmit={handleSaveKey}>
+            <label className="spec-field">
+              <span>API 키</span>
+              <input
+                type="password"
+                className="input"
+                name="apiKey"
+                placeholder="sk-… 또는 발급 키"
+                autoComplete="off"
+                disabled={!sessionSecret || keyBusy}
+              />
+            </label>
+            <button
+              type="submit"
+              className="btn primary block"
+              style={{ marginTop: 10 }}
+              disabled={!sessionSecret || keyBusy}
+            >
+              키 저장
+            </button>
+            <button
+              type="button"
+              className="btn ghost block"
+              style={{ marginTop: 8 }}
+              disabled={!sessionSecret || keyBusy}
+              onClick={() => void handleTestKey()}
+            >
+              키 테스트
+            </button>
+          </form>
+
+          {keyFeedback && (
+            <p
+              className="hint"
+              style={{ textAlign: 'left', marginTop: 10, color: '#a5b4fc' }}
+            >
+              {keyFeedback}
+            </p>
+          )}
 
           <div className="section-label" style={{ marginTop: 18 }}>
             저장된 키
@@ -332,14 +475,14 @@ export function MakeView({
                 <div className="row" key={k.provider}>
                   <div className="meta">
                     <div className="n">{k.provider}</div>
-                    <div className="d">{maskApiKey(k.key)}</div>
+                    <div className="d">{maskApiKeySuffix(k.keySuffix)}</div>
                   </div>
                   <button
                     type="button"
                     className="btn ghost"
                     onClick={() => {
                       removeApiKey(user.sub, k.provider)
-                      setSavedKeys(loadApiKeys(user.sub))
+                      refreshKeys()
                       onToast('삭제했습니다')
                     }}
                   >

@@ -1,9 +1,9 @@
 import type {
   ApiKeyProvider,
+  EncryptedStoredApiKey,
   EntityRecord,
   MakerDraft,
   PublishedUserApp,
-  StoredApiKey,
 } from './types'
 
 const PREFIX = 'corp-superapp'
@@ -120,26 +120,72 @@ export function insertRecord(
   return row
 }
 
-/** BYOK API keys */
-export function loadApiKeys(sub: string): StoredApiKey[] {
-  return readJson<StoredApiKey[]>(apiKeysKey(sub), [])
+/** BYOK API keys (encrypted only) */
+export type LoadApiKeysResult = {
+  keys: EncryptedStoredApiKey[]
+  clearedLegacy: boolean
 }
 
-export function saveApiKey(
+function isEncryptedEntry(raw: unknown): raw is EncryptedStoredApiKey {
+  if (!raw || typeof raw !== 'object') return false
+  const o = raw as Record<string, unknown>
+  return (
+    typeof o.provider === 'string' &&
+    typeof o.salt === 'string' &&
+    typeof o.iv === 'string' &&
+    typeof o.ciphertext === 'string' &&
+    typeof o.keySuffix === 'string' &&
+    typeof o.updatedAt === 'string' &&
+    !('key' in o)
+  )
+}
+
+function isLegacyPlainEntry(raw: unknown): boolean {
+  if (!raw || typeof raw !== 'object') return false
+  const o = raw as Record<string, unknown>
+  return typeof o.key === 'string' && typeof o.provider === 'string'
+}
+
+/**
+ * Load encrypted API key metadata. Legacy plaintext `{ key }` entries are
+ * deleted immediately; callers should toast when `clearedLegacy` is true.
+ */
+export function loadApiKeys(sub: string): LoadApiKeysResult {
+  const raw = readJson<unknown[]>(apiKeysKey(sub), [])
+  if (!Array.isArray(raw) || raw.length === 0) {
+    return { keys: [], clearedLegacy: false }
+  }
+  const clearedLegacy = raw.some(isLegacyPlainEntry)
+  const keys = raw.filter(isEncryptedEntry)
+  if (clearedLegacy || keys.length !== raw.length) {
+    writeJson(apiKeysKey(sub), keys)
+  }
+  return { keys, clearedLegacy }
+}
+
+export function saveEncryptedApiKey(
   sub: string,
-  provider: ApiKeyProvider,
-  key: string,
+  entry: EncryptedStoredApiKey,
 ): void {
-  const list = loadApiKeys(sub).filter((k) => k.provider !== provider)
-  list.push({ provider, key, updatedAt: new Date().toISOString() })
+  const { keys } = loadApiKeys(sub)
+  const list = keys.filter((k) => k.provider !== entry.provider)
+  list.push(entry)
   writeJson(apiKeysKey(sub), list)
 }
 
 export function removeApiKey(sub: string, provider: ApiKeyProvider): void {
+  const { keys } = loadApiKeys(sub)
   writeJson(
     apiKeysKey(sub),
-    loadApiKeys(sub).filter((k) => k.provider !== provider),
+    keys.filter((k) => k.provider !== provider),
   )
+}
+
+export function getEncryptedApiKey(
+  sub: string,
+  provider: ApiKeyProvider,
+): EncryptedStoredApiKey | null {
+  return loadApiKeys(sub).keys.find((k) => k.provider === provider) ?? null
 }
 
 /** Per-user installed ids (falls back handled by caller with defaults) */
@@ -158,7 +204,8 @@ export function saveUserInstalled(sub: string, ids: string[]): void {
   writeJson(installedKey(sub), ids)
 }
 
-export function maskApiKey(key: string): string {
-  if (key.length <= 8) return '••••••••'
-  return `${key.slice(0, 4)}…${key.slice(-4)}`
+/** Mask using stored keySuffix (no decrypt needed). */
+export function maskApiKeySuffix(keySuffix: string): string {
+  if (!keySuffix) return '••••••••'
+  return `••••…${keySuffix}`
 }

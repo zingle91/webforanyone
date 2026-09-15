@@ -167,7 +167,19 @@ export type PublishedUserApp = {
 
 export type ApiKeyProvider = 'openai' | 'anthropic' | 'gemini'
 
-export type StoredApiKey = {
+/** Encrypted BYOK entry — never store plaintext API keys in localStorage. */
+export type EncryptedStoredApiKey = {
+  provider: ApiKeyProvider
+  salt: string
+  iv: string
+  ciphertext: string
+  /** Last 4 chars for masked display without decrypting. */
+  keySuffix: string
+  updatedAt: string
+}
+
+/** @deprecated Legacy plaintext shape — cleared on load. */
+export type LegacyPlainStoredApiKey = {
   provider: ApiKeyProvider
   key: string
   updatedAt: string

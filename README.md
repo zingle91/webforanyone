@@ -98,7 +98,7 @@ SSH를 쓰는 경우: `git remote add origin git@github.com:zingle91/webforanyon
 
 ### 로컬 생성기
 
-- API 키 **없이** 동작 (BYOK LLM 키는 선택·localStorage만)
+- API 키 **없이** 동작 (BYOK LLM 키는 선택·브라우저에서 로그인 비밀번호로 암호화 후 localStorage)
 - 수정 요청 시 대화 맥락으로 **전체 스펙을 다시 생성**
 - 게시된 앱은 `SpecRuntime`(폼+목록)으로 실행
 - 시드 카탈로그 앱은 기존처럼 `iframe` + `MiniRuntime`
@@ -107,6 +107,12 @@ SSH를 쓰는 경우: `git remote add origin git@github.com:zingle91/webforanyon
 
 - 초안/게시 스펙, 엔티티 레코드, API 키: `localStorage` (사용자 `sub` 스코프)
 - 서버·DB 없음 (GitHub Pages 정적 배포)
+
+### API 키 (BYOK, 선택)
+
+- 평문 키를 localStorage에 두지 않습니다. PBKDF2(로그인 비밀번호 + `user.sub`)로 AES-GCM 키를 유도해 암호화합니다.
+- 복호화용 비밀번호는 **세션 메모리(React state)** 에만 두고, 새로고침 후에는 다시 로그인해야 합니다.
+- **만들기 → LLM API 키**: 저장(FormData) · 마스킹 목록 · 삭제 · 키 테스트(형식 + 암·복호 라운드트립; 실제 LLM 호출은 CORS 제한으로 생략).
 
 
 ## 범위 밖
