@@ -19,6 +19,7 @@ export function clearSession(): void {
   localStorage.removeItem(STORAGE_KEYS.session)
 }
 
+/** Legacy global installed list (unused by App; kept empty-safe). */
 export function loadInstalled(): string[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.installed)

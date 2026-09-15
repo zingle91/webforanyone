@@ -44,12 +44,15 @@ export default function App() {
       setInstalledIds([])
       return
     }
+    const catalogIds = new Set(mergeCatalog(session.sub).map((a) => a.id))
     const saved = loadUserInstalled(session.sub)
-    if (saved) setInstalledIds(saved)
-    else {
-      setInstalledIds([...DEFAULT_INSTALLED])
-      saveUserInstalled(session.sub, [...DEFAULT_INSTALLED])
+    const base = saved ?? [...DEFAULT_INSTALLED]
+    // Drop obsolete seed ids that are no longer in the catalog
+    const pruned = base.filter((id) => catalogIds.has(id))
+    if (!saved || pruned.length !== base.length) {
+      saveUserInstalled(session.sub, pruned)
     }
+    setInstalledIds(pruned)
   }, [session])
 
   const catalog = useMemo(() => {
@@ -145,7 +148,7 @@ export default function App() {
   return (
     <div className="app-shell">
       <h1 className="shell-title">Corp SuperApp Host</h1>
-      <p className="shell-sub">호스트 프로토타입 · iframe + SpecRuntime</p>
+      <p className="shell-sub">호스트 프로토타입 · 사용자 미니앱 SpecRuntime</p>
 
       <div className="phone">
         <div className="notch">

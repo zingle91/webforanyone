@@ -74,10 +74,10 @@ SSH를 쓰는 경우: `git remote add origin git@github.com:zingle91/webforanyon
 
 1. **로그인 목** — SSO 버튼 → `localStorage` 세션 `{ name, dept, sub }`
 2. **하단 탭** — 내 앱 | 스토어 | 만들기
-3. **내 앱** — 설치된 미니앱 그리드 (시드 4개)
+3. **내 앱** — 설치한 사용자 미니앱 그리드 (시드 없음)
 4. **스토어** — 설치/삭제 토글 (`localStorage`)
 5. **만들기** — 로컬 NL→MiniappSpec 메이커, 검증, 미리보기, 게시 + BYOK 키(선택)
-6. **미니앱 런타임** — 시드: iframe MiniRuntime / 사용자 앱: SpecRuntime
+6. **미니앱 런타임** — 사용자 게시 앱: SpecRuntime (폼+목록)
 7. **postMessage 브릿지** — `corp-superapp` v1  
    - `host.user.get` / `host.ui.toast` / `host.nav.close`  
    - origin 검사 포함
@@ -101,7 +101,7 @@ SSH를 쓰는 경우: `git remote add origin git@github.com:zingle91/webforanyon
 - API 키 **없이** 동작 (BYOK LLM 키는 선택·브라우저에서 로그인 비밀번호로 암호화 후 localStorage)
 - 수정 요청 시 대화 맥락으로 **전체 스펙을 다시 생성**
 - 게시된 앱은 `SpecRuntime`(폼+목록)으로 실행
-- 시드 카탈로그 앱은 기존처럼 `iframe` + `MiniRuntime`
+- 내장 시드 카탈로그는 없음. 스토어/내 앱은 사용자가 게시한 앱만 표시
 
 ### 저장 위치 (브라우저)
 
