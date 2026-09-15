@@ -290,9 +290,10 @@ export function MakeView({
 
   const handleSaveKey = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    const form = e.currentTarget
     const secret = requireSecret()
     if (!secret) return
-    const data = new FormData(e.currentTarget)
+    const data = new FormData(form)
     const rawKey = String(data.get('apiKey') ?? '').trim()
     if (!rawKey) {
       onToast('키를 입력해 주세요')
@@ -309,10 +310,11 @@ export function MakeView({
         updatedAt: new Date().toISOString(),
       })
       refreshKeys()
-      e.currentTarget.reset()
+      form.reset()
       setKeyFeedback('키를 암호화해 저장했습니다 (브라우저 로컬).')
       onToast('키를 암호화해 저장했습니다')
-    } catch {
+    } catch (err) {
+      console.error('API key save failed', err)
       setKeyFeedback('저장에 실패했습니다.')
       onToast('키 저장 실패')
     } finally {
