@@ -433,7 +433,13 @@ export function MakeView({
                 type="password"
                 className="input"
                 name="apiKey"
-                placeholder="sk-… 또는 발급 키"
+                placeholder={
+                  provider === 'gemini'
+                    ? 'AQ.… 또는 AIza…'
+                    : provider === 'anthropic'
+                      ? 'sk-ant-…'
+                      : 'sk-…'
+                }
                 autoComplete="off"
                 disabled={!sessionSecret || keyBusy}
               />

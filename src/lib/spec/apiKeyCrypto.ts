@@ -111,7 +111,7 @@ export function looksLikeApiKey(
   if (k.length < 8) return false
   if (provider === 'openai') return /^sk-[A-Za-z0-9_-]+/.test(k)
   if (provider === 'anthropic') return /^sk-ant-[A-Za-z0-9_-]+/.test(k)
-  if (provider === 'gemini') return /^[A-Za-z0-9_-]{20,}$/.test(k)
+  if (provider === 'gemini') return /^(AQ\.[A-Za-z0-9._-]+|AIza[A-Za-z0-9_-]{20,})$/.test(k)
   return false
 }
 

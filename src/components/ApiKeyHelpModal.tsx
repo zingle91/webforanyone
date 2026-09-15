@@ -18,7 +18,7 @@ const STEPS: Record<Provider, { title: string; desc: string }[]> = {
   gemini: [
     { title: '계정 준비', desc: 'Google AI Studio (aistudio.google.com)에 로그인해요.' },
     { title: 'Get API key', desc: 'Get API key로 새 키를 만들어요.' },
-    { title: '키 복사', desc: '발급된 키 문자열을 복사해요.' },
+    { title: '키 복사', desc: 'AQ.로 시작하는 키(또는 구형 AIza…)를 복사해요.' },
     { title: '여기에 붙여넣기', desc: '프로바이더 Google Gemini → 붙여넣고 저장.' },
   ],
 }
